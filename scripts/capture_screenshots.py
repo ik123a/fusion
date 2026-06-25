@@ -1,0 +1,52 @@
+#!/usr/bin/env python
+"""Capture screenshots of all Fusion routes via Playwright."""
+from playwright.sync_api import sync_playwright
+import sys
+import os
+
+OUT = r"C:\Users\SKV\Desktop\projects\fusion\docs\screenshots"
+os.makedirs(OUT, exist_ok=True)
+
+pages = [
+    ("http://localhost:3000/", "01-home", "Home — landing page"),
+    ("http://localhost:3000/dashboard", "02-dashboard", "Dashboard"),
+    ("http://localhost:3000/projects", "03-projects", "Projects list"),
+    ("http://localhost:3000/projects/1", "04-project-detail", "Project detail page"),
+    ("http://localhost:3000/editor", "05-editor", "Collaborative editor"),
+    ("http://localhost:3000/api", "06-api-playground", "API Playground"),
+    ("http://localhost:3000/deployments", "07-deployments", "Deployments"),
+    ("http://localhost:3000/settings", "08-settings", "Settings"),
+    ("http://localhost:3000/api/trpc/project.list?batch=1&input=%7B%220%22%3A%7B%22json%22%3Anull%7D%7D", "09-trpc-response", "tRPC API response (JSON)"),
+]
+
+with sync_playwright() as p:
+    browser = p.chromium.launch()
+    ctx = browser.new_context(viewport={"width": 1440, "height": 900})
+    page = ctx.new_page()
+
+    results = []
+    for url, slug, label in pages:
+        print(f"[{label}] visiting {url} ...", end=" ")
+        try:
+            page.goto(url, wait_until="domcontentloaded", timeout=20000)
+            # Give Next.js a moment to compile and hydrate
+            try:
+                page.wait_for_load_state("networkidle", timeout=8000)
+            except Exception:
+                pass  # networkidle occasionally times out on Vercel-walled routes
+            page.wait_for_timeout(1200)  # small graceful period for styles
+            out_path = os.path.join(OUT, f"{slug}.png")
+            page.screenshot(path=out_path, full_page=True)
+            size = os.path.getsize(out_path)
+            print(f"OK ({size // 1024} KB)")
+            results.append((label, out_path, size, "OK"))
+        except Exception as e:
+            print(f"FAILED: {e}")
+            results.append((label, None, 0, f"FAILED: {e}"))
+
+    browser.close()
+
+print("\n--- Summary ---")
+for label, path, size, status in results:
+    marker = "✓" if "OK" in status else "✗"
+    print(f"{marker} {label:40s} {status}")

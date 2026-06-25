@@ -1,13 +1,22 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "sonner";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-sans",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
+});
 
 export const metadata: Metadata = {
   title: "Fusion - Unified Development Environment",
   description: "Project management, collaborative code editing, API testing, and infrastructure visualization in one platform",
+  keywords: ["development", "collaboration", "code editor", "project management", "API testing"],
 };
 
 async function Providers({ children }: { children: React.ReactNode }) {
@@ -30,10 +39,19 @@ export default function RootLayout({
 }) {
   return (
     <Providers>
-      <html lang="en" suppressHydrationWarning>
-        <body className={inter.className}>
+      <html lang="en" className={`dark ${inter.variable} ${jetbrainsMono.variable}`} suppressHydrationWarning>
+        <body className="min-h-screen antialiased">
           {children}
-          <Toaster position="bottom-right" />
+          <Toaster
+            position="bottom-right"
+            toastOptions={{
+              style: {
+                background: "hsl(222 47% 10%)",
+                border: "1px solid hsl(222 30% 18%)",
+                color: "hsl(210 40% 95%)",
+              },
+            }}
+          />
         </body>
       </html>
     </Providers>
