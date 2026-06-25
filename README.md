@@ -39,10 +39,6 @@ Track builds with environment tags, git commit codes, execution timers, and log 
 Workspace configuration panels managing 2FA, sessions, API token generation, and appearance styling.
 ![User Profile & Settings](docs/screenshots/08-settings.png)
 
-### 9. Type-safe tRPC Response
-JSON schema responses fetched directly from compile-time type-safe endpoints.
-![Type-safe tRPC Response](docs/screenshots/09-trpc-response.png)
-
 ---
 
 ## ⚡ Architecture Flow

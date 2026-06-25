@@ -16,7 +16,6 @@ pages = [
     ("http://localhost:3001/api", "06-api-playground", "API Playground"),
     ("http://localhost:3001/deployments", "07-deployments", "Deployments"),
     ("http://localhost:3001/settings", "08-settings", "Settings"),
-    ("http://localhost:3001/api/trpc/project.list?batch=1&input=%7B%220%22%3A%7B%22json%22%3Anull%7D%7D", "09-trpc-response", "tRPC API response (JSON)"),
 ]
 
 with sync_playwright() as p:
@@ -31,10 +30,14 @@ with sync_playwright() as p:
             page.goto(url, wait_until="domcontentloaded", timeout=20000)
             # Give Next.js a moment to compile and hydrate
             try:
-                page.wait_for_load_state("networkidle", timeout=8000)
+                page.wait_for_load_state("networkidle", timeout=10000)
             except Exception:
                 pass  # networkidle occasionally times out on Vercel-walled routes
-            page.wait_for_timeout(1200)  # small graceful period for styles
+            
+            # Use longer wait for home page to compile layout/styles, and reasonable wait for other pages
+            wait_time = 10000 if slug == "01-home" else 3000
+            page.wait_for_timeout(wait_time)
+            
             out_path = os.path.join(OUT, f"{slug}.png")
             page.screenshot(path=out_path, full_page=True)
             size = os.path.getsize(out_path)
@@ -48,5 +51,5 @@ with sync_playwright() as p:
 
 print("\n--- Summary ---")
 for label, path, size, status in results:
-    marker = "✓" if "OK" in status else "✗"
+    marker = "[OK]" if "OK" in status else "[FAIL]"
     print(f"{marker} {label:40s} {status}")
