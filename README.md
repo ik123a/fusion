@@ -13,19 +13,35 @@ An animated, dark-mode landing page designed to greet developers and showcase pr
 
 ### 2. Workspace Dashboard
 A glassmorphic command center showing time-based greetings, real-time stat widgets, project progression meters, and user activity timelines.
-![Workspace Dashboard](docs/screenshots/dashboard_screenshot_1782406608237.png)
+![Workspace Dashboard](docs/screenshots/02-dashboard.png)
 
-### 3. Projects & Kanban Task Board
-A repository browser supporting grid and list toggles, accent tags, task progress meters, and drag-to-shift Kanban task pipelines.
-![Projects & Kanban Board](docs/screenshots/projects_screenshot_1782406626910.png)
+### 3. Projects List
+A repository browser supporting grid and list toggles, accent tags, and task progress meters.
+![Projects List](docs/screenshots/03-projects.png)
 
-### 4. Collaborative Code IDE
+### 4. Kanban Task Board & Detail
+Project detail workspace page featuring status lane controls, due dates, assignee cards, and task creation dialogs.
+![Kanban Task Board](docs/screenshots/04-project-detail.png)
+
+### 5. Collaborative Code IDE
 A real-time, multi-cursor, peer-connected Monaco editor workspace featuring collapsible file trees and metadata status bars.
-![Collaborative Code IDE](docs/screenshots/editor_screenshot_1782406642512.png)
+![Collaborative Code IDE](docs/screenshots/05-editor.png)
 
-### 5. API Client Playground
+### 6. API Client Playground
 A Postman-like client console to trigger REST queries, save request headers, and view timing details and JSON response payloads.
-![API Client Playground](docs/screenshots/api_screenshot_1782406661116.png)
+![API Client Playground](docs/screenshots/06-api-playground.png)
+
+### 7. Deployments Console
+Track builds with environment tags, git commit codes, execution timers, and log viewers.
+![Deployments Console](docs/screenshots/07-deployments.png)
+
+### 8. User Profile & Settings
+Workspace configuration panels managing 2FA, sessions, API token generation, and appearance styling.
+![User Profile & Settings](docs/screenshots/08-settings.png)
+
+### 9. Type-safe tRPC Response
+JSON schema responses fetched directly from compile-time type-safe endpoints.
+![Type-safe tRPC Response](docs/screenshots/09-trpc-response.png)
 
 ---
 

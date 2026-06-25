@@ -8,15 +8,15 @@ OUT = r"C:\Users\SKV\Desktop\projects\fusion\docs\screenshots"
 os.makedirs(OUT, exist_ok=True)
 
 pages = [
-    ("http://localhost:3000/", "01-home", "Home — landing page"),
-    ("http://localhost:3000/dashboard", "02-dashboard", "Dashboard"),
-    ("http://localhost:3000/projects", "03-projects", "Projects list"),
-    ("http://localhost:3000/projects/1", "04-project-detail", "Project detail page"),
-    ("http://localhost:3000/editor", "05-editor", "Collaborative editor"),
-    ("http://localhost:3000/api", "06-api-playground", "API Playground"),
-    ("http://localhost:3000/deployments", "07-deployments", "Deployments"),
-    ("http://localhost:3000/settings", "08-settings", "Settings"),
-    ("http://localhost:3000/api/trpc/project.list?batch=1&input=%7B%220%22%3A%7B%22json%22%3Anull%7D%7D", "09-trpc-response", "tRPC API response (JSON)"),
+    ("http://localhost:3001/", "01-home", "Home — landing page"),
+    ("http://localhost:3001/dashboard", "02-dashboard", "Dashboard"),
+    ("http://localhost:3001/projects", "03-projects", "Projects list"),
+    ("http://localhost:3001/projects/1", "04-project-detail", "Project detail page"),
+    ("http://localhost:3001/editor", "05-editor", "Collaborative editor"),
+    ("http://localhost:3001/api", "06-api-playground", "API Playground"),
+    ("http://localhost:3001/deployments", "07-deployments", "Deployments"),
+    ("http://localhost:3001/settings", "08-settings", "Settings"),
+    ("http://localhost:3001/api/trpc/project.list?batch=1&input=%7B%220%22%3A%7B%22json%22%3Anull%7D%7D", "09-trpc-response", "tRPC API response (JSON)"),
 ]
 
 with sync_playwright() as p:
