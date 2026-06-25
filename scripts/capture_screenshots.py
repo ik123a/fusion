@@ -38,6 +38,13 @@ with sync_playwright() as p:
             wait_time = 10000 if slug == "01-home" else 3000
             page.wait_for_timeout(wait_time)
             
+            # Scroll down and up to trigger scroll animations (framer-motion whileInView)
+            if slug == "01-home":
+                page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+                page.wait_for_timeout(1500)
+                page.evaluate("window.scrollTo(0, 0)")
+                page.wait_for_timeout(1000)
+            
             out_path = os.path.join(OUT, f"{slug}.png")
             page.screenshot(path=out_path, full_page=True)
             size = os.path.getsize(out_path)
