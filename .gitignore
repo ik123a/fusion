@@ -38,6 +38,8 @@ coverage/
 
 # Prisma
 prisma/migrations/
+# Generated Prisma client (re-created on `pnpm db:generate`)
+**/.prisma/
 
 # Turbo
 .turbo/

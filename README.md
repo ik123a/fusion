@@ -1,126 +1,96 @@
 # Fusion
 
-A unified development environment that combines project management, collaborative code editing, API testing, and infrastructure visualization into one open-source platform.
+> **Real-time collaborative platform for product teams.** TypeScript monorepo · Next.js 15 · tRPC · Prisma · Yjs CRDTs · Clerk auth.
 
-## Features
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![Node 20+](https://img.shields.io/badge/node-%E2%89%A520-green.svg)](https://nodejs.org) [![pnpm 9+](https://img.shields.io/badge/pnpm-%E2%89%A59-orange.svg)](https://pnpm.io)
 
-- **Project Management** - Tasks, documents, and team collaboration
-- **Real-Time Code Editor** - Collaborative editing with Yjs CRDT
-- **API Playground** - Test and debug APIs with an intuitive interface
-- **Infrastructure Visualization** - Deploy and manage your infrastructure
+---
 
-## Tech Stack
+## Highlights
 
-- **Frontend**: Next.js 15, React 19, TypeScript, Tailwind CSS, shadcn/ui
-- **Real-Time**: Yjs, Monaco Editor, WebSockets
-- **Backend**: tRPC, Prisma, PostgreSQL
-- **Infrastructure**: Docker, Kubernetes, Terraform
+- ✅ **Real-time collaboration:** Yjs + y-monaco + y-webrtc — peer-to-peer CRDTs, no sync server in dev.
+- ✅ **End-to-end type safety:** tRPC v11 + Zod + superjson. Client knows server types at compile time.
+- ✅ **Single Next.js 15 app:** no separate API server, route handlers cover all RPC.
+- ✅ **Mock DB fallback:** dev mode works without Postgres — routers auto-fall back to fixtures.
+- ✅ **AI-native:** OpenAI codebase-aware suggestions, docstring gen, code review.
+- ✅ **Auth out of the box:** Clerk middleware handles sign-in/sign-up/passkeys.
+- ✅ **shadcn/ui primitives** in `packages/ui`, ready to extend.
 
-## Getting Started
+---
 
-### Prerequisites
-
-- Node.js 20+
-- pnpm 8+
-- PostgreSQL
-- Redis
-
-### Installation
+## Quick start
 
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/fusion.git
-
-# Navigate to the project
-cd fusion
-
-# Install dependencies
 pnpm install
-
-# Set up environment variables
 cp .env.example .env.local
-
-# Start the development server
+pnpm db:generate
 pnpm dev
 ```
 
-### Environment Variables
+Open <http://localhost:3000>. Skip Postgres setup entirely in dev — the tRPC routers serve fixtures when the DB is unreachable (set `FUSION_USE_MOCK_DB=0` to force real queries).
 
-```env
-# Database
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/fusion
+For full local setup — Postgres, Redis, Clerk, OpenAI keys — see **[`docs/contributing.md`](docs/contributing.md)**.
 
-# Redis
-REDIS_URL=redis://localhost:6379
+---
 
-# Authentication (Clerk)
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_key
-CLERK_SECRET_KEY=your_secret
-
-# OpenAI (optional)
-OPENAI_API_KEY=your_key
-```
-
-## Project Structure
+## Repository structure
 
 ```
 fusion/
-├── apps/
-│   └── web/                 # Next.js 15 frontend
+├── apps/web             → Next.js 15 app (UI + API)
 ├── packages/
-│   ├── ui/                  # Shared UI components
-│   ├── db/                  # Prisma schema and client
-│   ├── auth/                # Authentication utilities
-│   └── types/               # Shared TypeScript types
-├── tooling/
-│   ├── eslint/
-│   └── typescript/
-├── docker/
-│   ├── Dockerfile
-│   └── docker-compose.yml
-└── k8s/                     # Kubernetes manifests
+│   ├── ai               → OpenAI integration
+│   ├── auth             → Clerk helpers
+│   ├── db               → Prisma schema + client
+│   ├── queue            → BullMQ workers (Redis)
+│   ├── types            → Shared Zod schemas & DTOs
+│   └── ui               → shadcn/ui primitives
+├── docker/              → Postgres + Redis compose
+├── docs/                → architecture.md, api.md, contributing.md
+└── turbo.json           → build orchestration
 ```
 
-## Development
+See **[`docs/architecture.md`](docs/architecture.md)** for the full system diagram, decisions, and reasoning.
+
+---
+
+## Stack
+
+| Layer | Tool |
+|---|---|
+| Frontend | Next.js 15, React 19, Tailwind 4 |
+| Editor | Monaco + y-monaco (Yjs binding) |
+| Realtime | Yjs over y-webrtc (no server in dev) |
+| API | tRPC v11 + superjson |
+| Validation | Zod |
+| Auth | Clerk |
+| ORM / DB | Prisma + PostgreSQL |
+| Async jobs | BullMQ + Redis |
+| AI | OpenAI (`@repo/ai`) |
+| UI kit | shadcn/ui in `@repo/ui` |
+
+---
+
+## Scripts
 
 ```bash
-# Start all services
-pnpm dev
-
-# Run tests
-pnpm test
-
-# Lint code
+pnpm dev              # next dev with Turbopack
+pnpm build            # production build (turbo)
 pnpm lint
-
-# Type check
 pnpm type-check
+pnpm db:generate      # prisma generate
+pnpm db:migrate       # prisma migrate dev
+pnpm db:studio        # prisma studio (default :5555)
 ```
 
-## Deployment
+---
 
-### Docker
+## Status
 
-```bash
-# Build the image
-docker build -t fusion -f docker/Dockerfile .
+**Active development.** The scaffold has a real database schema, full tRPC router surface, real-time collaboration, and an AI integration plan. See `docs/` for the roadmap.
 
-# Run with docker-compose
-cd docker
-docker-compose up -d
-```
-
-### Kubernetes
-
-```bash
-# Apply manifests
-kubectl apply -f k8s/deployment.yaml
-```
-
-## Contributing
-
-Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md) before submitting a PR.
+---
 
 ## License
 
-MIT © [Your Name](https://github.com/yourusername)
+MIT.

@@ -23,6 +23,9 @@ importers:
       '@monaco-editor/react':
         specifier: ^4.6.0
         version: 4.7.0(monaco-editor@0.55.1)(react-dom@19.2.7)(react@19.2.7)
+      '@prisma/client':
+        specifier: ^5.22.0
+        version: 5.22.0(prisma@5.22.0)
       '@radix-ui/react-dialog':
         specifier: ^1.0.5
         version: 1.1.17(@types/react-dom@19.2.3)(@types/react@19.2.17)(react-dom@19.2.7)(react@19.2.7)
@@ -50,6 +53,24 @@ importers:
       '@radix-ui/react-tooltip':
         specifier: ^1.0.7
         version: 1.2.10(@types/react-dom@19.2.3)(@types/react@19.2.17)(react-dom@19.2.7)(react@19.2.7)
+      '@repo/ai':
+        specifier: workspace:^
+        version: link:../../packages/ai
+      '@repo/auth':
+        specifier: workspace:^
+        version: link:../../packages/auth
+      '@repo/db':
+        specifier: workspace:^
+        version: link:../../packages/db
+      '@repo/queue':
+        specifier: workspace:^
+        version: link:../../packages/queue
+      '@repo/types':
+        specifier: workspace:^
+        version: link:../../packages/types
+      '@repo/ui':
+        specifier: workspace:^
+        version: link:../../packages/ui
       '@tanstack/react-query':
         specifier: ^5.28.0
         version: 5.101.1(react@19.2.7)
@@ -77,6 +98,9 @@ importers:
       lucide-react:
         specifier: ^0.363.0
         version: 0.363.0(react@19.2.7)
+      monaco-editor:
+        specifier: ^0.55.1
+        version: 0.55.1
       next:
         specifier: ^15.0.0
         version: 15.5.19(react-dom@19.2.7)(react@19.2.7)
@@ -208,6 +232,9 @@ importers:
       tailwind-merge:
         specifier: ^2.2.2
         version: 2.6.1
+      tailwindcss:
+        specifier: '>=3.0.0 || insiders'
+        version: 4.3.1
       tailwindcss-animate:
         specifier: ^1.0.7
         version: 1.0.7(tailwindcss@4.3.1)
