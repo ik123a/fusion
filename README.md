@@ -203,5 +203,41 @@ Run these scripts from the repository root:
 
 ---
 
+## 🐳 Docker & Kubernetes Deployment
+
+### Running with Docker Compose
+You can run the web app, PostgreSQL, and Redis cache locally using Docker Compose:
+
+1. **Build and start the services**:
+   ```bash
+   docker compose -f docker/docker-compose.yml up -d --build
+   ```
+2. **Access the application**:
+   Open `http://localhost:3000` in your browser.
+
+### Deploying to Kubernetes
+Kubernetes manifests for the full stack are located in the `k8s/` directory.
+
+1. **Create the namespace**:
+   ```bash
+   kubectl create namespace fusion
+   ```
+2. **Configure secret variables**:
+   Copy `k8s/secrets-template.yaml` to `k8s/secrets.yaml`, fill in your secrets, and apply:
+   ```bash
+   kubectl apply -f k8s/secrets.yaml
+   ```
+3. **Deploy PostgreSQL, Redis, and the Fusion web service**:
+   ```bash
+   kubectl apply -f k8s/postgres.yaml
+   kubectl apply -f k8s/redis.yaml
+   kubectl apply -f k8s/deployment.yaml
+   ```
+4. **Access the web app**:
+   The web service runs as a `LoadBalancer` (port 80). Get the external IP or port-forward:
+   ```bash
+   kubectl port-forward -n fusion svc/fusion-web 3000:80
+   ```
+
 ## 📄 License
 Licensed under the [MIT License](LICENSE).
