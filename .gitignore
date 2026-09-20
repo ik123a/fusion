@@ -43,3 +43,13 @@ prisma/migrations/
 
 # Turbo
 .turbo/
+
+/apps/web/.next/cache/webpack/client-production/0.pack
+
+/apps/web/.next/cache/webpack/client-production/3.pack
+
+/apps/web/.next/cache/webpack/client-production/4.pack
+
+/apps/web/.next/cache/webpack/server-production/0.pack
+
+/apps/web/.next/cache/webpack/server-production/3.pack
