@@ -28,7 +28,6 @@
     "@repo/db": "workspace:^",
     "@repo/queue": "workspace:^",
     "@repo/types": "workspace:^",
-    "@repo/ui": "workspace:^",
     "@tanstack/react-query": "^5.28.0",
     "@trpc/client": "^11.0.0-next-beta.26",
     "@trpc/next": "^11.0.0-next-beta.26",

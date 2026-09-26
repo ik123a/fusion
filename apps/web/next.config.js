@@ -17,7 +17,6 @@ const nextConfig = {
       },
     ],
   },
-  transpilePackages: ["@repo/ui"],
   serverExternalPackages: ["@prisma/client", "@repo/db"],
 };
 
