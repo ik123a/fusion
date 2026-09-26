@@ -172,6 +172,9 @@ importers:
         specifier: ^4.40.0
         version: 4.104.0
     devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.20.4
       typescript:
         specifier: ^5.4.2
         version: 5.9.3
@@ -181,6 +184,9 @@ importers:
       '@clerk/nextjs':
         specifier: ^5.0.0
         version: 5.7.6(next@15.5.19)(react-dom@19.2.7)(react@19.2.7)
+      '@repo/db':
+        specifier: workspace:*
+        version: link:../db
       next:
         specifier: ^15.0.0
         version: 15.5.19(react-dom@19.2.7)(react@19.2.7)
@@ -2001,7 +2007,7 @@ packages:
   /@types/node-fetch@2.6.13:
     resolution: {integrity: sha512-QGpRVpzSaUs30JBSGPjOg4Uveu384erbHBoT1zeONvyCfwQxIkUshLAOqN/k9EjGviPRmWTTe6aH2qySWKTVSw==}
     dependencies:
-      '@types/node': 20.19.43
+      '@types/node': 22.20.4
       form-data: 4.0.6
     dev: false
 
@@ -2013,6 +2019,12 @@ packages:
 
   /@types/node@20.19.43:
     resolution: {integrity: sha512-6oYBAi5ikg4Pl+kGsoYtawUMBT2zZMCvPNF7pVLnHZfd1zf38DRiWn/gT01RYCdUqkv7Fhr+C9ot4/tb+2sVvA==}
+    dependencies:
+      undici-types: 6.21.0
+    dev: true
+
+  /@types/node@22.20.4:
+    resolution: {integrity: sha512-zJRE40jpHtKqE/C4fgHrAKQLJuSpzEnP9ff9Y7YtoR3Wd2pwqzlekDeEuUQXjRd+QCYnVnNwuJYmhdk9XV8gvA==}
     dependencies:
       undici-types: 6.21.0
 
