@@ -306,9 +306,13 @@ export default function Home() {
             <span className="text-sm text-muted-foreground">Fusion — MIT Licensed</span>
           </div>
           <div className="flex gap-6 text-sm text-muted-foreground">
-            <a href="https://github.com" className="hover:text-foreground transition-colors">GitHub</a>
-            <a href="/docs" className="hover:text-foreground transition-colors">Docs</a>
-            <a href="/dashboard" className="hover:text-foreground transition-colors">Dashboard</a>
+            {/* Both of these pointed nowhere useful:
+                "https://github.com" is the bare domain, not this repo; and
+                /docs has no route, so it 404'd. The repo's real docs are in
+                docs/ (api.md, architecture.md, contributing.md). */}
+            <a href="https://github.com/ik123a/fusion" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">GitHub</a>
+            <a href="https://github.com/ik123a/fusion/tree/master/docs" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">Docs</a>
+            <Link href="/dashboard" className="hover:text-foreground transition-colors">Dashboard</Link>
           </div>
         </div>
       </footer>
