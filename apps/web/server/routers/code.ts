@@ -1,8 +1,7 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../trpc";
 
-const isDev = process.env.NODE_ENV !== "production";
-const useMockDb = isDev && process.env.FUSION_USE_MOCK_DB !== "0";
+import { withData, workspaceAccess, editors, fileAccess, notFound } from "../access";
 
 const mockCodeFiles = [
   {
@@ -58,27 +57,14 @@ interface MockCodeFile {
 
 const mockCodeFileStore = [...mockCodeFiles] as MockCodeFile[];
 
-async function withDbFallback<T>(real: () => Promise<T>, fallback: () => any): Promise<T> {
-  if (!useMockDb) return real();
-  try {
-    return await real();
-  } catch (err) {
-    if (process.env.NODE_ENV === "development") {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.warn(`[code router] DB unavailable (${msg.split("\n")[0]}) — using mock data.`);
-    }
-    return fallback() as T;
-  }
-}
-
 export const codeRouter = router({
   list: protectedProcedure
     .input(z.object({ projectId: z.string() }))
     .query(async ({ ctx, input }) => {
-      return withDbFallback(
+      return withData(
         async () => {
           const files = await ctx.db.codeFile.findMany({
-            where: { projectId: input.projectId },
+            where: { projectId: input.projectId, ...fileAccess(ctx.userId) },
             orderBy: { path: "asc" },
           });
           return files;
@@ -90,12 +76,12 @@ export const codeRouter = router({
   getById: protectedProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
-      return withDbFallback(
+      return withData(
         async () => {
           const file = await ctx.db.codeFile.findUnique({
-            where: { id: input.id },
+            where: { id: input.id, ...fileAccess(ctx.userId) },
           });
-          if (!file) throw new Error("File not found");
+          if (!file) throw notFound();
           return file;
         },
         () => {
@@ -117,15 +103,19 @@ export const codeRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      return withDbFallback(
+      return withData(
         async () => {
           const file = await ctx.db.codeFile.create({
             data: {
               path: input.path,
               content: input.content,
               language: input.language,
-              projectId: input.projectId,
-              workspaceId: input.workspaceId,
+              project: { connect: {
+                id: input.projectId,
+                workspaceId: input.workspaceId,
+                workspace: workspaceAccess(ctx.userId, editors),
+              } },
+              workspace: { connect: { id: input.workspaceId, ...workspaceAccess(ctx.userId, editors) } },
               createdById: ctx.userId,
             },
           });
@@ -153,10 +143,10 @@ export const codeRouter = router({
   update: protectedProcedure
     .input(z.object({ id: z.string(), content: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      return withDbFallback(
+      return withData(
         async () => {
           const file = await ctx.db.codeFile.update({
-            where: { id: input.id },
+            where: { id: input.id, ...fileAccess(ctx.userId, editors) },
             data: { content: input.content, version: { increment: 1 } },
           });
           return file;
@@ -175,9 +165,9 @@ export const codeRouter = router({
   delete: protectedProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      return withDbFallback(
+      return withData(
         async () => {
-          await ctx.db.codeFile.delete({ where: { id: input.id } });
+          await ctx.db.codeFile.delete({ where: { id: input.id, ...fileAccess(ctx.userId, editors) } });
           return { success: true };
         },
         () => {

@@ -1,11 +1,7 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../trpc";
 
-// Dev-mode mock factory. When the DB is unreachable (no Postgres / no migration)
-// we fall back to in-memory data so the UI still renders. Active only when
-// NODE_ENV !== "production". In production, errors propagate to the client.
-const isDev = process.env.NODE_ENV !== "production";
-const useMockDb = isDev && process.env.FUSION_USE_MOCK_DB !== "0";
+import { withData, workspaceAccess, editors, notFound } from "../access";
 
 const mockDb = {
   projects: [
@@ -13,7 +9,7 @@ const mockDb = {
       id: "1",
       name: "Fusion Platform",
       description: "Unified dev environment",
-      workspaceId: "default",
+      workspaceId: "ws1",
       createdAt: new Date("2026-06-20"),
       updatedAt: new Date("2026-06-24"),
       taskCount: 12,
@@ -22,7 +18,7 @@ const mockDb = {
       id: "2",
       name: "API Gateway",
       description: "Microservices gateway",
-      workspaceId: "default",
+      workspaceId: "ws1",
       createdAt: new Date("2026-06-18"),
       updatedAt: new Date("2026-06-23"),
       taskCount: 8,
@@ -31,7 +27,7 @@ const mockDb = {
       id: "3",
       name: "Mobile App",
       description: "React Native mobile client",
-      workspaceId: "default",
+      workspaceId: "ws1",
       createdAt: new Date("2026-06-15"),
       updatedAt: new Date("2026-06-22"),
       taskCount: 5,
@@ -47,42 +43,16 @@ const mockDb = {
   }>,
 };
 
-// Wrap a real-DB operation so dev runs gracefully without Postgres / Redis.
-// In dev we suppress the noisy Prisma stack trace because the fallback is
-// intentional — readable one-liner instead.
-//
-// The fallback type is parametrized loosely: tRPC's inference already produces
-// a complex Prisma infershape, and a small `as any` at the fallback site is
-// cleaner than re-declaring the full include shape.
-type AnyFn = () => Promise<any> | any;
-async function withDbFallback<T>(
-  real: AnyFn,
-  fallback: () => T
-): Promise<T> {
-  if (!useMockDb) return (await real()) as T;
-  try {
-    return (await real()) as T;
-  } catch (err) {
-    if (process.env.NODE_ENV === "development") {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.warn(
-        `[project router] DB unavailable (${msg.split("\n")[0]}) — using mock data.`
-      );
-    }
-    return fallback();
-  }
-}
-
 export const projectRouter = router({
   list: protectedProcedure.query(async ({ ctx }) => {
-    return withDbFallback(
+    return withData(
       async () => {
         const projects = await ctx.db.project.findMany({
-          where: { workspaceId: "default" },
+          where: { workspace: workspaceAccess(ctx.userId) },
           include: { _count: { select: { tasks: true } } },
           orderBy: { updatedAt: "desc" },
         });
-        return projects.map((p: { _count: { tasks: number } } & Record<string, unknown>) => ({
+        return projects.map((p) => ({
           ...p,
           taskCount: p._count.tasks,
         }));
@@ -94,13 +64,17 @@ export const projectRouter = router({
   getById: protectedProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
-      return withDbFallback(
+      return withData(
         async () => {
           const project = await ctx.db.project.findUnique({
-            where: { id: input.id },
-            include: { tasks: true, documents: true, codeFiles: true },
+            where: { id: input.id, workspace: workspaceAccess(ctx.userId) },
+            include: {
+              tasks: true,
+              documents: { where: { workspace: workspaceAccess(ctx.userId) } },
+              codeFiles: { where: { workspace: workspaceAccess(ctx.userId) } },
+            },
           });
-          if (!project) throw new Error("Project not found");
+          if (!project) throw notFound();
           return project;
         },
         () => {
@@ -120,13 +94,13 @@ export const projectRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      return withDbFallback(
+      return withData(
         async () => {
           return await ctx.db.project.create({
             data: {
               name: input.name,
               description: input.description,
-              workspaceId: input.workspaceId,
+              workspace: { connect: { id: input.workspaceId, ...workspaceAccess(ctx.userId, editors) } },
             },
           });
         },
@@ -155,10 +129,10 @@ export const projectRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      return withDbFallback(
+      return withData(
         async () => {
           return await ctx.db.project.update({
-            where: { id: input.id },
+            where: { id: input.id, workspace: workspaceAccess(ctx.userId, editors) },
             data: { name: input.name, description: input.description },
           });
         },
@@ -181,9 +155,24 @@ export const projectRouter = router({
   delete: protectedProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      return withDbFallback(
+      return withData(
         async () => {
-          await ctx.db.project.delete({ where: { id: input.id } });
+          const scope = { id: input.id, workspace: workspaceAccess(ctx.userId, editors) };
+          const project = await ctx.db.project.findUnique({
+            where: scope,
+            select: { workspaceId: true },
+          });
+          if (!project) throw notFound();
+          const foreignChild = { workspaceId: { not: project.workspaceId } };
+          // Keep pre-existing inconsistent rows out of the database cascade.
+          await ctx.db.project.delete({
+            where: {
+              ...scope,
+              workspaceId: project.workspaceId,
+              documents: { none: foreignChild },
+              codeFiles: { none: foreignChild },
+            },
+          });
           return { success: true };
         },
         () => {

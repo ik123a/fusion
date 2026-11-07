@@ -63,8 +63,7 @@ const { data } = trpc.project.list.useQuery({ workspaceId: "ws_1" });
 - **Type:** mutation
 - **Auth:** protected (ADMIN+)
 - **Input:** `{ workspaceId: string; email: string; role: "ADMIN" | "MEMBER" | "VIEWER" }`
-- **Returns:** `{ success: true; message: string }`
-- **Note:** Currently returns `success` immediately; future iteration will email-an Einladung or create a pending invite.
+- Authorized owners and admins receive `NOT_IMPLEMENTED`. No invitation is sent.
 
 ---
 
@@ -172,7 +171,7 @@ const { data } = trpc.project.list.useQuery({ workspaceId: "ws_1" });
 
 ---
 
-### `ai.*`
+### Proposed AI procedures (not registered in the current API)
 
 #### `ai.suggestCode`
 - **Input:**
@@ -194,7 +193,7 @@ const { data } = trpc.project.list.useQuery({ workspaceId: "ws_1" });
 - **Input:** `{ fileId: string; selection?: { start: number; end: number } }`
 - **Returns:** `{ issues: CodeIssue[]; score: number }`
 
-> All `ai.*` mutations enforce per-user rate limits (in-flight token bucket, defaults 60 req/min).
+> These operations are design notes. The registered router exposes workspace, project, task and code procedures.
 
 ---
 
@@ -217,4 +216,4 @@ curl 'http://localhost:3000/api/trpc/project.list?batch=1&input={"0":{"json":{"w
   -H 'content-type: application/json'
 ```
 
-In dev mode without auth you can bypass by setting `FUSION_DEV_BYPASS_AUTH=1` (see contributing.md).
+The explicit local fixture mode uses `FUSION_USE_MOCK_DB=1` in development with absent or example Clerk keys. See the README for real identity and workspace role requirements.

@@ -1,8 +1,7 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../trpc";
 
-const isDev = process.env.NODE_ENV !== "production";
-const useMockDb = isDev && process.env.FUSION_USE_MOCK_DB !== "0";
+import { withData, workspaceAccess, taskWriteAccess, notFound } from "../access";
 
 const mockTasks = [
   {
@@ -103,27 +102,14 @@ interface MockTask {
 
 const mockTaskStore = [...mockTasks] as MockTask[];
 
-async function withDbFallback<T>(real: () => Promise<T>, fallback: () => any): Promise<T> {
-  if (!useMockDb) return real();
-  try {
-    return await real();
-  } catch (err) {
-    if (process.env.NODE_ENV === "development") {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.warn(`[task router] DB unavailable (${msg.split("\n")[0]}) — using mock data.`);
-    }
-    return fallback() as T;
-  }
-}
-
 export const taskRouter = router({
   list: protectedProcedure
     .input(z.object({ projectId: z.string() }))
     .query(async ({ ctx, input }) => {
-      return withDbFallback(
+      return withData(
         async () => {
           const tasks = await ctx.db.task.findMany({
-            where: { projectId: input.projectId },
+            where: { projectId: input.projectId, project: { workspace: workspaceAccess(ctx.userId) } },
             include: {
               assignee: true,
               createdBy: true,
@@ -140,10 +126,10 @@ export const taskRouter = router({
   getById: protectedProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
-      return withDbFallback(
+      return withData(
         async () => {
           const task = await ctx.db.task.findUnique({
-            where: { id: input.id },
+            where: { id: input.id, project: { workspace: workspaceAccess(ctx.userId) } },
             include: {
               assignee: true,
               createdBy: true,
@@ -151,7 +137,7 @@ export const taskRouter = router({
               comments: { include: { user: true } },
             },
           });
-          if (!task) throw new Error("Task not found");
+          if (!task) throw notFound();
           return task;
         },
         () => {
@@ -168,21 +154,21 @@ export const taskRouter = router({
         title: z.string().min(1),
         description: z.string().optional(),
         projectId: z.string(),
-        assigneeId: z.string().optional(),
+        assigneeId: z.string().min(1).optional(),
         priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]).optional(),
         dueDate: z.date().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
-      return withDbFallback(
+      return withData(
         async () => {
           const task = await ctx.db.task.create({
             data: {
               title: input.title,
               description: input.description,
-              projectId: input.projectId,
-              createdById: ctx.userId,
-              assigneeId: input.assigneeId,
+              project: { connect: { id: input.projectId, ...taskWriteAccess(ctx.userId, input.assigneeId) } },
+              createdBy: { connect: { id: ctx.userId } },
+              assignee: input.assigneeId ? { connect: { id: input.assigneeId } } : undefined,
               priority: input.priority,
               dueDate: input.dueDate,
             },
@@ -222,15 +208,15 @@ export const taskRouter = router({
         description: z.string().optional(),
         status: z.enum(["TODO", "IN_PROGRESS", "REVIEW", "DONE"]).optional(),
         priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]).optional(),
-        assigneeId: z.string().nullable().optional(),
+        assigneeId: z.string().min(1).nullable().optional(),
         dueDate: z.date().nullable().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
-      return withDbFallback(
+      return withData(
         async () => {
           const task = await ctx.db.task.update({
-            where: { id: input.id },
+            where: { id: input.id, project: taskWriteAccess(ctx.userId, input.assigneeId) },
             data: {
               title: input.title,
               description: input.description,
@@ -265,9 +251,9 @@ export const taskRouter = router({
   delete: protectedProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      return withDbFallback(
+      return withData(
         async () => {
-          await ctx.db.task.delete({ where: { id: input.id } });
+          await ctx.db.task.delete({ where: { id: input.id, project: taskWriteAccess(ctx.userId) } });
           return { success: true };
         },
         () => {

@@ -2,16 +2,17 @@ import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { ZodError } from "zod";
 import { db } from "@repo/db";
+import { getCurrentUser } from "@repo/auth";
+import { hasClerkKeys, isDemoMode } from "./auth-config";
 
-interface CreateContextOptions {
-  userId?: string;
-}
-
-export const createTRPCContext = (opts: CreateContextOptions) => {
-  return {
-    db,
-    userId: opts.userId,
-  };
+export const createTRPCContext = async () => {
+  let userId: string | undefined;
+  if (isDemoMode()) {
+    userId = "dev-user-001";
+  } else if (hasClerkKeys()) {
+    userId = (await getCurrentUser())?.id;
+  }
+  return { db, userId };
 };
 
 const t = initTRPC.context<typeof createTRPCContext>().create({

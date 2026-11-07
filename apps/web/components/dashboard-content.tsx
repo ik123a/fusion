@@ -28,12 +28,6 @@ const mockActivities = [
   { id: "act-3", type: "comment", text: "Marcus Aurelius commented on 'Auth Flow revamp'", time: "2h ago", icon: MessageSquare, color: "text-cyan-400 bg-cyan-500/10" },
 ];
 
-const mockProjects = [
-  { id: "1", name: "Fusion Platform", taskCount: 12, completedCount: 8, description: "Real-time collaborative developer environment", color: "from-indigo-500 to-violet-500", updatedAt: new Date().toISOString() },
-  { id: "2", name: "API Gateway", taskCount: 8, completedCount: 6, description: "Microservices routing and auth gateway", color: "from-cyan-500 to-blue-500", updatedAt: new Date().toISOString() },
-  { id: "3", name: "Mobile App", taskCount: 5, completedCount: 1, description: "React Native mobile workspace client", color: "from-amber-500 to-rose-500", updatedAt: new Date().toISOString() },
-];
-
 // ── Time-based greeting helper ───────────────────────────────────────────
 const getGreeting = () => {
   const hour = new Date().getHours();
@@ -68,17 +62,19 @@ export function DashboardContent() {
     setGreeting(getGreeting());
   }, []);
 
-  const useProjects = error ? mockProjects : projects?.map((p: any, idx: number) => ({
+  const useProjects = projects?.map((p: any, idx: number) => ({
     ...p,
     // Inject mock completion metrics for nice UI bars
     taskCount: p.taskCount ?? 10,
     completedCount: Math.round((p.taskCount ?? 10) * 0.6),
     color: idx % 3 === 0 ? "from-indigo-500 to-violet-500" : idx % 3 === 1 ? "from-cyan-500 to-blue-500" : "from-amber-500 to-rose-500",
-  })) ?? mockProjects;
+  })) ?? [];
 
   const totalProjects = useProjects?.length ?? 0;
   const totalTasks = useProjects?.reduce((acc: number, p: any) => acc + (p.taskCount ?? 0), 0) ?? 0;
   const activeTasks = useProjects?.reduce((acc: number, p: any) => acc + ((p.taskCount ?? 0) - (p.completedCount ?? 0)), 0) ?? 0;
+
+  if (error) return <p role="alert" className="p-6">Dashboard projects could not be loaded. Check your sign-in and workspace access.</p>;
 
   if (isLoading) {
     return (
