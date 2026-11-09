@@ -7,8 +7,8 @@
 ## Prerequisites
 
 - **Node 20+** (`node -v`)
-- **pnpm 9+** (`npm i -g pnpm` or use `corepack enable && corepack prepare pnpm@latest --activate`)
-- **Postgres 14+** — *optional in dev*, the tRPC routers have a mock fallback for onboarding
+- **pnpm 8.15.0** (the version declared by the root package)
+- **Postgres 14+** — required for authenticated data access, optional for the explicit local fixture demo
 - **Redis** — *optional*, only needed for BullMQ workers
 
 ---
@@ -18,18 +18,18 @@
 ```bash
 git clone https://github.com/ik123a/fusion.git
 cd fusion
-pnpm install
-pnpm db:generate      # generates Prisma client (writes to .pnpm store + packages/db)
-cp .env.example .env.local
+pnpm install --frozen-lockfile
+pnpm --filter @repo/db generate
+cp .env.example apps/web/.env.local
 pnpm dev              # starts Next.js at http://localhost:3000
 ```
 
-That's it. The app boots without Postgres in dev mode (mock DB fallback kicks in). To use real Postgres:
+With the example configuration, the development server uses in-memory fixtures. To use a real database, configure both Clerk keys, provision a matching User row, and follow these steps.
 
 1. Spin up Postgres locally: `docker compose up -d postgres` (compose file under `docker/`)
-2. Set `DATABASE_URL` in `.env.local`
-3. Set `FUSION_USE_MOCK_DB=0` in `.env.local`
-4. `pnpm db:migrate` to apply the Prisma schema
+2. Set `DATABASE_URL` in `apps/web/.env.local`
+3. Set `FUSION_USE_MOCK_DB=0` in `apps/web/.env.local`
+4. `pnpm --filter @repo/db migrate` to apply the Prisma schema
 
 ---
 
@@ -41,9 +41,9 @@ That's it. The app boots without Postgres in dev mode (mock DB fallback kicks in
 | `pnpm build` | Production build (all packages built first via Turbo) |
 | `pnpm lint` | ESLint across all packages |
 | `pnpm type-check` | `tsc --noEmit` per package |
-| `pnpm db:generate` | `prisma generate` → writes generated client into `.pnpm` |
-| `pnpm db:migrate` | `prisma migrate dev` |
-| `pnpm db:studio` | Prisma Studio GUI (defaults to :5555) |
+| `pnpm --filter @repo/db generate` | `prisma generate` → writes generated client into `.pnpm` |
+| `pnpm --filter @repo/db migrate` | `prisma migrate dev` |
+| `pnpm --filter @repo/db studio` | Prisma Studio GUI (defaults to :5555) |
 | `pnpm format` | Prettier (with `prettier-plugin-organize-imports`) |
 
 ---
@@ -95,7 +95,7 @@ Conventions:
 ### Database
 - Schema lives in `packages/db/prisma/schema.prisma`.
 - One model per file? — no, schema is single-file for now.
-- Migrations: `pnpm db:migrate --name <change>`.
+- Migrations: `pnpm --filter @repo/db migrate --name <change>`.
 
 ---
 
@@ -124,7 +124,7 @@ Test files live next to source: `foo.ts` ↔ `foo.test.ts`.
 
 ## Dev-server quirks (Windows)
 
-- **Prisma query engine not found.** If you see `query_engine-windows.dll.node not found`, run `pnpm db:generate`. If the dev server is holding the DLL, stop it first (`Ctrl+C`) before re-generating.
+- **Prisma query engine not found.** If you see `query_engine-windows.dll.node not found`, run `pnpm --filter @repo/db generate`. If the dev server is holding the DLL, stop it first (`Ctrl+C`) before re-generating.
 - **Turbopack HMR occasionally stalls** on Windows when many files change at once — `Ctrl+C` + `pnpm dev`.
 - **ms-playwright browser cache** is shared at `%LOCALAPPDATA%\ms-playwright`. Use `pnpm exec playwright install` once.
 

@@ -1,8 +1,8 @@
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, protectedProcedure } from "../trpc";
 
-const isDev = process.env.NODE_ENV !== "production";
-const useMockDb = isDev && process.env.FUSION_USE_MOCK_DB !== "0";
+import { withData, workspaceAccess, managers, notFound } from "../access";
 
 const mockWorkspaces = [
   {
@@ -43,22 +43,9 @@ interface MockWorkspace {
 
 const mockWorkspaceStore = [...mockWorkspaces] as MockWorkspace[];
 
-async function withDbFallback<T>(real: () => Promise<T>, fallback: () => any): Promise<T> {
-  if (!useMockDb) return real();
-  try {
-    return await real();
-  } catch (err) {
-    if (process.env.NODE_ENV === "development") {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.warn(`[workspace router] DB unavailable (${msg.split("\n")[0]}) — using mock data.`);
-    }
-    return fallback() as T;
-  }
-}
-
 export const workspaceRouter = router({
   list: protectedProcedure.query(async ({ ctx }) => {
-    return withDbFallback(
+    return withData(
       async () => {
         const workspaces = await ctx.db.workspaceUser.findMany({
           where: { userId: ctx.userId },
@@ -84,16 +71,16 @@ export const workspaceRouter = router({
   getById: protectedProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
-      return withDbFallback(
+      return withData(
         async () => {
           const workspace = await ctx.db.workspace.findUnique({
-            where: { id: input.id },
+            where: { id: input.id, ...workspaceAccess(ctx.userId) },
             include: {
               users: { include: { user: true } },
               projects: true,
             },
           });
-          if (!workspace) throw new Error("Workspace not found");
+          if (!workspace) throw notFound();
           return workspace;
         },
         () => {
@@ -113,7 +100,7 @@ export const workspaceRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      return withDbFallback(
+      return withData(
         async () => {
           const workspace = await ctx.db.workspace.create({
             data: {
@@ -157,10 +144,10 @@ export const workspaceRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      return withDbFallback(
+      return withData(
         async () => {
           const workspace = await ctx.db.workspace.update({
-            where: { id: input.id },
+            where: { id: input.id, ...workspaceAccess(ctx.userId, managers) },
             data: { name: input.name, description: input.description },
           });
           return workspace;
@@ -184,9 +171,23 @@ export const workspaceRouter = router({
   delete: protectedProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      return withDbFallback(
+      return withData(
         async () => {
-          await ctx.db.workspace.delete({ where: { id: input.id } });
+          // Both the workspace and project foreign keys cascade on deletion.
+          const foreignChild = { workspaceId: { not: input.id } };
+          const foreignProject = { project: { workspaceId: { not: input.id } } };
+          await ctx.db.workspace.delete({
+            where: {
+              id: input.id,
+              ...workspaceAccess(ctx.userId, ["OWNER"]),
+              documents: { none: foreignProject },
+              codeFiles: { none: foreignProject },
+              projects: { none: { OR: [
+                { documents: { some: foreignChild } },
+                { codeFiles: { some: foreignChild } },
+              ] } },
+            },
+          });
           return { success: true };
         },
         () => {
@@ -206,13 +207,18 @@ export const workspaceRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      return withDbFallback(
+      await withData(
         async () => {
-          // In a real implementation, this would look up the user by email
-          // and create a WorkspaceUser entry
-          return { success: true, message: "Invitation sent" };
+          const workspace = await ctx.db.workspace.findUnique({
+            where: { id: input.workspaceId, ...workspaceAccess(ctx.userId, managers) },
+            select: { id: true },
+          });
+          if (!workspace) throw notFound();
         },
-        () => ({ success: true, message: "Invitation sent (mock)" })
+        () => {
+          if (!mockWorkspaceStore.some((w) => w.id === input.workspaceId)) throw notFound();
+        }
       );
+      throw new TRPCError({ code: "NOT_IMPLEMENTED", message: "Workspace invitations are unavailable" });
     }),
 });

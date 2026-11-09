@@ -44,13 +44,6 @@ const itemVariants = {
   },
 };
 
-// ── Mock Fallback Data ───────────────────────────────────────────────────
-const mockProjects = [
-  { id: "1", name: "Fusion Platform", description: "Real-time collaborative developer environment", taskCount: 12, completedCount: 8, fileCount: 45, color: "indigo", updatedAt: new Date().toISOString() },
-  { id: "2", name: "API Gateway", description: "Microservices routing, rate limiting and OAuth", taskCount: 8, completedCount: 6, fileCount: 18, color: "cyan", updatedAt: new Date().toISOString() },
-  { id: "3", name: "Mobile App", description: "React Native developer dashboard and client", taskCount: 5, completedCount: 1, fileCount: 22, color: "amber", updatedAt: new Date().toISOString() },
-];
-
 const colorPresets = [
   { name: "indigo", class: "bg-indigo-500 ring-indigo-500/35" },
   { name: "violet", class: "bg-violet-500 ring-violet-500/35" },
@@ -75,16 +68,21 @@ export function ProjectsContent() {
   const [description, setDescription] = useState("");
   const [selectedColor, setSelectedColor] = useState("indigo");
 
+  const [selectedWorkspace, setSelectedWorkspace] = useState("");
+  const { data: workspaces } = trpc.workspace.list.useQuery();
+  const editableWorkspaces = workspaces?.filter((w) => w.role !== "VIEWER") ?? [];
+  const workspaceId = editableWorkspaces.find((w) => w.id === selectedWorkspace)?.id
+    ?? editableWorkspaces[0]?.id;
   const utils = trpc.useContext();
   const { data: projects, isLoading, error } = trpc.project.list.useQuery();
-  const useProjects = error ? mockProjects : projects?.map((p: any, idx: number) => ({
+  const useProjects = projects?.map((p: any, idx: number) => ({
     ...p,
     taskCount: p.taskCount ?? 10,
     completedCount: Math.round((p.taskCount ?? 10) * 0.6),
     fileCount: p.fileCount ?? 15,
     color: p.color ?? colorPresets[idx % colorPresets.length].name,
     updatedAt: p.updatedAt ?? new Date().toISOString(),
-  })) ?? mockProjects;
+  })) ?? [];
 
   const createProject = trpc.project.create.useMutation({
     onSuccess: () => {
@@ -105,12 +103,15 @@ export function ProjectsContent() {
       toast.error("Project name is required");
       return;
     }
+    if (!workspaceId) return;
     createProject.mutate({
       name,
       description,
-      workspaceId: "1",
+      workspaceId,
     });
   };
+
+  if (error) return <p role="alert" className="p-6">Projects could not be loaded. Check your sign-in and workspace access.</p>;
 
   const filteredProjects = useProjects.filter((p: any) =>
     p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -145,6 +146,14 @@ export function ProjectsContent() {
               <DialogDescription>Add a new workspace repository to collaborate in real-time</DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
+              <div>
+                <Label htmlFor="workspace">Workspace</Label>
+                <select id="workspace" value={workspaceId ?? ""} onChange={(e) => setSelectedWorkspace(e.target.value)}
+                  className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2">
+                  {!workspaceId && <option value="">No writable workspace available</option>}
+                  {editableWorkspaces.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
+                </select>
+              </div>
               <div className="grid gap-1.5">
                 <Label htmlFor="name">Project Name</Label>
                 <Input
@@ -186,7 +195,7 @@ export function ProjectsContent() {
               <Button variant="ghost" onClick={() => setIsCreating(false)}>Cancel</Button>
               <Button
                 onClick={handleCreate}
-                disabled={createProject.isPending}
+                disabled={createProject.isPending || !workspaceId}
                 className="bg-indigo-600 hover:bg-indigo-500"
               >
                 {createProject.isPending ? "Creating..." : "Create Project"}

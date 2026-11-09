@@ -59,13 +59,6 @@ const priorityConfig: Record<TaskPriority, { borderClass: string; badgeClass: st
   },
 };
 
-const mockTasks: Task[] = [
-  { id: "t-1", title: "Implement dark mode theme", description: "Design Tailwind core config and global mesh gradient assets.", status: "TODO", priority: "HIGH", createdAt: new Date().toISOString() },
-  { id: "t-2", title: "Yjs Monaco collab pipeline", description: "Hook up WebRTC network provider for editor file state synchronizer.", status: "IN_PROGRESS", priority: "URGENT", createdAt: new Date().toISOString() },
-  { id: "t-3", title: "Configure router schemas", description: "Setup workspace queries and validation using Zod.", status: "REVIEW", priority: "MEDIUM", createdAt: new Date().toISOString() },
-  { id: "t-4", title: "Draft API client hooks", description: "Ensure context wraps sidebar components safely.", status: "DONE", priority: "LOW", createdAt: new Date().toISOString() },
-];
-
 export function TaskBoard({ projectId }: TaskBoardProps) {
   const [isCreating, setIsCreating] = useState(false);
   const [title, setTitle] = useState("");
@@ -76,10 +69,10 @@ export function TaskBoard({ projectId }: TaskBoardProps) {
   
   // Queries & Mutations
   const { data: tasks, isLoading, error } = trpc.task.list.useQuery({ projectId });
-  const useTasks = error ? mockTasks : tasks?.map((t: any) => ({
+  const useTasks = tasks?.map((t: any) => ({
     ...t,
     createdAt: t.createdAt ?? new Date().toISOString(),
-  })) ?? mockTasks;
+  })) ?? [];
 
   const createTask = trpc.task.create.useMutation({
     onSuccess: () => {
@@ -124,6 +117,8 @@ export function TaskBoard({ projectId }: TaskBoardProps) {
       status: newStatus,
     });
   };
+
+  if (error) return <p role="alert" className="p-6">Tasks could not be loaded. Check your sign-in and project access.</p>;
 
   // Group tasks by status
   const tasksByColumn = columns.reduce((acc, col) => {

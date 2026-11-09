@@ -96,8 +96,8 @@ fusion/
 | **Yjs + y-webrt**c | Real-time collaboration without a server. CRDTs guarantee convergence; y-webrtc is peer-to-peer so we avoid running a sync server in dev. |
 | **y-monaco binding** | Editor state (text, cursors, selections, undo stack) syncs through Yjs automatically. The Monaco binding handles attaching Yjs awareness and undo manager. |
 | **Clerk for auth** | Zero-config dev experience, drop-in middleware, multiple strategies out of the box (email, OAuth, passkeys). |
-| **BullMQ (+ Redis) for queues** | Battle-tested, observable jobs for async work (AI requests, webhooks, exports). Mock fallback in dev so Redis is optional. |
-| **Mock DB fallback (dev)** | tRPC routers auto-detect DB connection failure and serve fixture data. Lets you onboard without spinning up Postgres. Set `FUSION_USE_MOCK_DB=0` to bypass. |
+| **BullMQ (+ Redis) for queues** | Battle-tested, observable jobs for async work (AI requests, webhooks, exports). Redis is required when running queue jobs. |
+| **Local fixture demo** | Development servers use fixtures only with explicit `FUSION_USE_MOCK_DB=1` and absent or example Clerk credentials. Authenticated requests query PostgreSQL. Database and authorization failures propagate. |
 | **superjson on tRPC** | Preserves Date, Map, Set, BigInt across the wire — Zod otherwise loses them. |
 
 ---
@@ -108,12 +108,12 @@ fusion/
 
 ```
 1. Browser navigates to /dashboard/projects/abc
-2. RSC fetches session via Clerk (cached on the edge)
+2. Clerk middleware verifies the configured session
 3. Client component mounts → useQuery(project.getById, { id: "abc" })
 4. tRPC client POSTs to /api/trpc/[trpc]?batch=1
 5. Route handler dispatches to project.getById
-6. With DB available: Prisma SELECT → return
-   Without DB: returns mock fallback, logged as warning
+6. The request context resolves the Clerk subject to a database User and checks workspace membership in the Prisma query.
+   An explicitly enabled local demo instead returns in-memory fixtures.
 7. React Query caches; component renders
 ```
 
@@ -145,16 +145,16 @@ fusion/
 
 - **Type safety:** tRPC gives client-server inference; Prisma gives DB inference. The `packages/types` package holds DTOs used by multiple packages.
 - **Validation:** All tRPC inputs and mutations validated with Zod. Errors surface with structured `TRPCError` codes (`UNAUTHORIZED`, `BAD_REQUEST`, `NOT_FOUND`).
-- **Auth boundaries:** `protectedProcedure` enforces session guard inside every router. tRPC enables per-procedure authz rules. RSC layouts use Clerk `auth()` for server-side checks.
+- **Auth boundaries:** `protectedProcedure` enforces session guard inside every router. tRPC enables per-procedure authz rules. The tRPC context maps Clerk identities to database users. Prisma predicates enforce membership and roles.
 - **Error reporting:** tRPC's `errorFormatter` includes Zod issues flattened, so client-side forms can map field errors without parsing strings.
-- **Logging:** Structured console output on server (`console.warn` in dev fallbacks, ergonomic to swap for pino later).
+- **Logging:** The tRPC handler logs procedure errors in development.
 
 ---
 
 ## Production Considerations
 
 - Replace local y-webrtc with a hosted **y-websocket** server (Hocuspocus, Liveblocks) for scaling beyond ~10 peers per room.
-- Move from mock DB fallback → Postgres in production (set `FUSION_USE_MOCK_DB=0`).
+- Configure both Clerk keys and provision matching database users and workspace memberships before serving protected procedures.
 - Add observability: POST `/api/trpc` traces to OpenTelemetry, BullMQ jobs to a job dashboard.
 - Add per-workspace rate limiting on AI mutations.
 - Resolve `lucide-react` peer (currently React 19, lucide wants 16-18 — works in practice, upgrade when lucide ships v1).
